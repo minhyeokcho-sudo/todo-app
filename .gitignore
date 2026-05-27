@@ -1,0 +1,12 @@
+# Claude Code local preview config
+.claude/
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
