@@ -114,6 +114,52 @@
     outline: none;
   }
 
+  #categoryInput {
+    width: 110px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+  }
+
+  #categoryInput:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.15);
+  }
+
+  #categoryFilter {
+    margin-left: auto;
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--card);
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    outline: none;
+    max-width: 160px;
+  }
+
+  #categoryFilter:hover { color: var(--text); border-color: var(--text-secondary); }
+
+  .todo-item .category {
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+  }
+
+  .todo-item.done .category { opacity: 0.5; }
+
   #addBtn {
     padding: 12px 22px;
     background: var(--primary);
@@ -338,6 +384,8 @@
 
   <div class="input-area">
     <input type="text" id="todoInput" placeholder="할 일을 입력하고 Enter 키를 누르세요" maxlength="200" autofocus>
+    <input type="text" id="categoryInput" list="categoryList" placeholder="대분류" maxlength="30" title="대분류 (선택)">
+    <datalist id="categoryList"></datalist>
     <select id="priority" title="우선순위">
       <option value="normal">보통</option>
       <option value="high">높음</option>
@@ -350,6 +398,7 @@
     <button class="filter active" data-filter="all">전체 <span class="count" data-count="all">0</span></button>
     <button class="filter" data-filter="active">진행 중 <span class="count" data-count="active">0</span></button>
     <button class="filter" data-filter="completed">완료 <span class="count" data-count="completed">0</span></button>
+    <select id="categoryFilter" title="대분류 필터"><option value="">전체 분류</option></select>
   </div>
 
   <ul id="todoList"></ul>
@@ -366,6 +415,9 @@
   const THEME_KEY = 'todos-theme';
 
   const $input = document.getElementById('todoInput');
+  const $categoryInput = document.getElementById('categoryInput');
+  const $categoryList = document.getElementById('categoryList');
+  const $categoryFilter = document.getElementById('categoryFilter');
   const $priority = document.getElementById('priority');
   const $addBtn = document.getElementById('addBtn');
   const $list = document.getElementById('todoList');
@@ -375,6 +427,7 @@
 
   let todos = [];
   let filter = 'all';
+  let categoryFilter = '';
 
   try {
     todos = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -401,15 +454,31 @@
   }
 
   function escapeHtml(s) {
-    const div = document.createElement('div');
-    div.textContent = s;
-    return div.innerHTML;
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function categoryStyle(name, isDark) {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = (name.charCodeAt(i) + ((hash << 5) - hash)) | 0;
+    const h = Math.abs(hash) % 360;
+    return isDark
+      ? 'background:hsl(' + h + ',40%,28%);color:hsl(' + h + ',70%,85%);'
+      : 'background:hsl(' + h + ',70%,92%);color:hsl(' + h + ',45%,30%);';
   }
 
   function render() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+    const categories = [...new Set(todos.map(t => (t.category || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b, 'ko'));
+    $categoryList.innerHTML = categories.map(c => '<option value="' + escapeHtml(c) + '">').join('');
+    if (categoryFilter && !categories.includes(categoryFilter)) categoryFilter = '';
+    $categoryFilter.innerHTML = '<option value="">전체 분류</option>' +
+      categories.map(c => '<option value="' + escapeHtml(c) + '"' + (c === categoryFilter ? ' selected' : '') + '>' + escapeHtml(c) + '</option>').join('');
+
     const visible = todos.filter(t => {
-      if (filter === 'active') return !t.done;
-      if (filter === 'completed') return t.done;
+      if (filter === 'active' && t.done) return false;
+      if (filter === 'completed' && !t.done) return false;
+      if (categoryFilter && (t.category || '') !== categoryFilter) return false;
       return true;
     });
 
@@ -419,20 +488,25 @@
         active: { emoji: '🎉', text: '진행 중인 할 일이 없어요!' },
         completed: { emoji: '📭', text: '완료한 할 일이 없어요.' }
       };
-      const m = messages[filter];
-      $list.innerHTML = '<li class="empty-state"><span class="emoji">' + m.emoji + '</span>' + m.text + '</li>';
+      const m = categoryFilter
+        ? { emoji: '🔍', text: '"' + categoryFilter + '" 분류에 해당하는 할 일이 없어요.' }
+        : messages[filter];
+      $list.innerHTML = '<li class="empty-state"><span class="emoji">' + m.emoji + '</span>' + escapeHtml(m.text) + '</li>';
     } else {
-      $list.innerHTML = visible.map(t =>
-        '<li class="todo-item ' + (t.done ? 'done ' : '') + 'priority-' + t.priority + '" data-id="' + t.id + '">' +
-          '<input type="checkbox"' + (t.done ? ' checked' : '') + '>' +
-          '<span class="text">' + escapeHtml(t.text) + '</span>' +
-          '<span class="date">' + formatDate(t.createdAt) + '</span>' +
-          '<div class="actions">' +
-            '<button class="edit" title="수정">수정</button>' +
-            '<button class="delete" title="삭제">삭제</button>' +
-          '</div>' +
-        '</li>'
-      ).join('');
+      $list.innerHTML = visible.map(t => {
+        const cat = (t.category || '').trim();
+        const chip = cat ? '<span class="category" style="' + categoryStyle(cat, isDark) + '">' + escapeHtml(cat) + '</span>' : '';
+        return '<li class="todo-item ' + (t.done ? 'done ' : '') + 'priority-' + t.priority + '" data-id="' + t.id + '">' +
+            '<input type="checkbox"' + (t.done ? ' checked' : '') + '>' +
+            chip +
+            '<span class="text">' + escapeHtml(t.text) + '</span>' +
+            '<span class="date">' + formatDate(t.createdAt) + '</span>' +
+            '<div class="actions">' +
+              '<button class="edit" title="수정">수정</button>' +
+              '<button class="delete" title="삭제">삭제</button>' +
+            '</div>' +
+          '</li>';
+      }).join('');
     }
 
     const activeCount = todos.filter(t => !t.done).length;
@@ -449,16 +523,23 @@
     todos.unshift({
       id: Date.now() + '-' + Math.random().toString(36).slice(2,6),
       text: text,
+      category: $categoryInput.value.trim(),
       done: false,
       priority: $priority.value,
       createdAt: Date.now()
     });
     $input.value = '';
     $priority.value = 'normal';
+    // 대분류는 같은 분류로 연달아 추가하는 경우가 많아 유지
     save();
     render();
     $input.focus();
   }
+
+  $categoryFilter.addEventListener('change', () => {
+    categoryFilter = $categoryFilter.value;
+    render();
+  });
 
   $addBtn.addEventListener('click', addTodo);
 
@@ -483,6 +564,13 @@
     } else if (e.target.matches('.delete')) {
       if (confirm('이 할 일을 삭제하시겠습니까?\n\n' + todo.text)) {
         todos = todos.filter(t => t.id !== id);
+        save();
+        render();
+      }
+    } else if (e.target.matches('.category')) {
+      const newCat = prompt('대분류 변경 (비워두면 제거):', todo.category || '');
+      if (newCat !== null) {
+        todo.category = newCat.trim();
         save();
         render();
       }
@@ -548,6 +636,7 @@
   $themeToggle.addEventListener('click', () => {
     const current = document.documentElement.getAttribute('data-theme');
     applyTheme(current === 'dark' ? 'light' : 'dark');
+    render();
   });
 
   function applyTheme(theme) {
