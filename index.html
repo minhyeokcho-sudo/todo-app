@@ -284,6 +284,37 @@
     font-family: inherit;
   }
 
+  .todo-item .category-edit {
+    width: 110px;
+    padding: 6px 10px;
+    border: 1px solid var(--primary);
+    border-radius: 6px;
+    font-size: 13px;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    font-family: inherit;
+    flex-shrink: 0;
+  }
+
+  .todo-item .drag-handle {
+    color: var(--text-secondary);
+    opacity: 0.35;
+    cursor: grab;
+    font-size: 16px;
+    line-height: 1;
+    user-select: none;
+    flex-shrink: 0;
+    padding: 0 2px;
+    transition: opacity 0.15s;
+  }
+
+  .todo-item:hover .drag-handle { opacity: 0.75; }
+  .todo-item.dragging { opacity: 0.4; }
+  .todo-item.dragging .drag-handle { cursor: grabbing; }
+  .todo-item.drag-over-top { box-shadow: inset 0 2px 0 var(--primary); }
+  .todo-item.drag-over-bottom { box-shadow: inset 0 -2px 0 var(--primary); }
+
   .todo-item .date {
     font-size: 12px;
     color: var(--text-secondary);
@@ -496,7 +527,8 @@
       $list.innerHTML = visible.map(t => {
         const cat = (t.category || '').trim();
         const chip = cat ? '<span class="category" style="' + categoryStyle(cat, isDark) + '">' + escapeHtml(cat) + '</span>' : '';
-        return '<li class="todo-item ' + (t.done ? 'done ' : '') + 'priority-' + t.priority + '" data-id="' + t.id + '">' +
+        return '<li class="todo-item ' + (t.done ? 'done ' : '') + 'priority-' + t.priority + '" data-id="' + t.id + '" draggable="true">' +
+            '<span class="drag-handle" title="드래그하여 순서 변경" aria-hidden="true">⠿</span>' +
             '<input type="checkbox"' + (t.done ? ' checked' : '') + '>' +
             chip +
             '<span class="text">' + escapeHtml(t.text) + '</span>' +
@@ -541,6 +573,71 @@
     render();
   });
 
+  let draggedId = null;
+
+  function clearDragIndicators() {
+    $list.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
+      el.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+  }
+
+  $list.addEventListener('dragstart', e => {
+    const li = e.target.closest('.todo-item');
+    if (!li) return;
+    draggedId = li.dataset.id;
+    li.classList.add('dragging');
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', draggedId); } catch (_) {}
+    }
+  });
+
+  $list.addEventListener('dragend', () => {
+    $list.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+    clearDragIndicators();
+    draggedId = null;
+  });
+
+  $list.addEventListener('dragover', e => {
+    if (!draggedId) return;
+    const li = e.target.closest('.todo-item');
+    if (!li || li.dataset.id === draggedId) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    const rect = li.getBoundingClientRect();
+    const above = (e.clientY - rect.top) < rect.height / 2;
+    clearDragIndicators();
+    li.classList.add(above ? 'drag-over-top' : 'drag-over-bottom');
+  });
+
+  $list.addEventListener('dragleave', e => {
+    if (!e.relatedTarget || !$list.contains(e.relatedTarget)) clearDragIndicators();
+  });
+
+  $list.addEventListener('drop', e => {
+    e.preventDefault();
+    const targetLi = e.target.closest('.todo-item');
+    if (!targetLi || !draggedId || targetLi.dataset.id === draggedId) {
+      clearDragIndicators();
+      return;
+    }
+    const targetId = targetLi.dataset.id;
+    const rect = targetLi.getBoundingClientRect();
+    const dropAbove = (e.clientY - rect.top) < rect.height / 2;
+
+    const fromIdx = todos.findIndex(t => t.id === draggedId);
+    if (fromIdx === -1) return;
+    const [moved] = todos.splice(fromIdx, 1);
+    const newToIdx = todos.findIndex(t => t.id === targetId);
+    if (newToIdx === -1) {
+      todos.splice(fromIdx, 0, moved);
+      return;
+    }
+    todos.splice(dropAbove ? newToIdx : newToIdx + 1, 0, moved);
+    save();
+    render();
+  });
+
   $addBtn.addEventListener('click', addTodo);
 
   $input.addEventListener('keydown', e => {
@@ -567,43 +664,71 @@
         save();
         render();
       }
-    } else if (e.target.matches('.category')) {
-      const newCat = prompt('대분류 변경 (비워두면 제거):', todo.category || '');
-      if (newCat !== null) {
-        todo.category = newCat.trim();
-        save();
-        render();
-      }
-    } else if (e.target.matches('.edit') || e.target.matches('.text')) {
+    } else if (e.target.matches('.edit') || e.target.matches('.text') || e.target.matches('.category')) {
       startEdit(li, todo);
     }
   });
 
   function startEdit(li, todo) {
+    li.draggable = false;
+
     const textSpan = li.querySelector('.text');
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'text-edit';
-    input.value = todo.text;
-    input.maxLength = 200;
-    textSpan.replaceWith(input);
-    input.focus();
-    input.select();
+    const catSpan = li.querySelector('.category');
+
+    const textInput = document.createElement('input');
+    textInput.type = 'text';
+    textInput.className = 'text-edit';
+    textInput.value = todo.text;
+    textInput.maxLength = 200;
+
+    const catInput = document.createElement('input');
+    catInput.type = 'text';
+    catInput.className = 'category-edit';
+    catInput.value = todo.category || '';
+    catInput.maxLength = 30;
+    catInput.placeholder = '대분류';
+    catInput.setAttribute('list', 'categoryList');
+
+    textSpan.replaceWith(textInput);
+    if (catSpan) {
+      catSpan.replaceWith(catInput);
+    } else {
+      textInput.after(catInput);
+    }
+
+    textInput.focus();
+    textInput.select();
+
+    let done = false;
 
     function commit() {
-      const newText = input.value.trim();
-      if (newText && newText !== todo.text) {
-        todo.text = newText;
-        save();
-      }
+      if (done) return;
+      const newText = textInput.value.trim();
+      if (!newText) { render(); done = true; return; }
+      done = true;
+      todo.text = newText;
+      todo.category = catInput.value.trim();
+      save();
       render();
     }
-    function cancel() { render(); }
+    function cancel() {
+      if (done) return;
+      done = true;
+      render();
+    }
+    function maybeCommit() {
+      setTimeout(() => {
+        const a = document.activeElement;
+        if (a !== textInput && a !== catInput) commit();
+      }, 0);
+    }
 
-    input.addEventListener('blur', commit);
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); commit(); }
-      else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+    [textInput, catInput].forEach(inp => {
+      inp.addEventListener('blur', maybeCommit);
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); commit(); }
+        else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+      });
     });
   }
 
