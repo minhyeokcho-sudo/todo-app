@@ -1274,6 +1274,29 @@
     }
   }
 
+  async function findExistingGist(token) {
+    // 같은 토큰으로 만들어진 같은 description의 Gist를 탐색.
+    // 여러 개가 있으면 항목 수가 가장 많은 것을 선택 (다기기에서 실수로 새 Gist를 만든 경우 복구).
+    const gists = await gistRequest('GET', '/gists?per_page=100', token);
+    const candidates = gists.filter(g =>
+      g && g.files && g.files[GIST_FILENAME] && g.description === GIST_DESCRIPTION
+    );
+    if (candidates.length === 0) return null;
+    if (candidates.length === 1) return candidates[0].id;
+    let bestId = null, bestCount = -1;
+    for (const g of candidates) {
+      try {
+        const data = await gistRequest('GET', '/gists/' + g.id, token);
+        const file = data.files && data.files[GIST_FILENAME];
+        if (!file) continue;
+        const parsed = JSON.parse(file.content);
+        const count = Array.isArray(parsed.todos) ? parsed.todos.length : 0;
+        if (count > bestCount) { bestId = g.id; bestCount = count; }
+      } catch (e) { /* 무시하고 다음 후보 */ }
+    }
+    return bestId;
+  }
+
   async function gistCreate(token, payload) {
     const data = await gistRequest('POST', '/gists', token, {
       description: GIST_DESCRIPTION,
@@ -1349,6 +1372,16 @@
     try {
       let gistId = localStorage.getItem(GIST_ID_KEY);
       let remote = { todos: [], tombstones: [] };
+
+      // 로컬에 Gist ID가 없으면, 같은 토큰으로 만들어진 기존 Gist를 먼저 찾아본다.
+      // (다른 기기에서 이미 만든 Gist가 있으면 그걸 재사용해서 새 빈 Gist를 만들지 않음)
+      if (!gistId) {
+        const found = await findExistingGist(token);
+        if (found) {
+          gistId = found;
+          localStorage.setItem(GIST_ID_KEY, gistId);
+        }
+      }
 
       if (gistId) {
         try {
