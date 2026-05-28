@@ -42,13 +42,131 @@
   }
 
   .container {
-    max-width: 640px;
+    max-width: 960px;
     margin: 0 auto;
     background: var(--card);
     border-radius: 16px;
     box-shadow: var(--shadow);
     overflow: hidden;
     transition: background 0.3s;
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    align-items: stretch;
+  }
+
+  .active-section {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .completed-section {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border);
+    background: var(--bg);
+  }
+
+  [data-theme="dark"] .completed-section { background: rgba(255,255,255,0.02); }
+
+  .completed-header {
+    padding: 18px 22px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .completed-header h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: -0.2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .done-count {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--border);
+    color: var(--text-secondary);
+    font-weight: 600;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  .completed-header #clearCompleted {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-family: inherit;
+    transition: color 0.2s, background 0.2s;
+  }
+
+  .completed-header #clearCompleted:hover { color: var(--danger); background: var(--card); }
+
+  #completedList {
+    list-style: none;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 200px;
+    max-height: 60vh;
+  }
+
+  #completedList .todo-item {
+    padding: 10px 22px;
+    gap: 8px;
+    font-size: 13px;
+  }
+  #completedList .todo-item .text { font-size: 13px; }
+  #completedList .todo-item .date { display: none; }
+  #completedList .todo-item .drag-handle { display: none; }
+  #completedList .todo-item button { font-size: 11px; padding: 4px 8px; }
+  #completedList .empty-state { padding: 40px 16px; font-size: 13px; }
+  #completedList .empty-state .emoji { font-size: 26px; margin-bottom: 8px; }
+
+  .memo.has-content {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+  .memo.has-content:hover { background: var(--primary-hover); color: white; }
+
+  .todo-item .memo-area {
+    flex-basis: 100%;
+    margin-top: 6px;
+  }
+
+  .todo-item .memo-area textarea {
+    width: 100%;
+    min-height: 70px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .todo-item .memo-area textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.15);
   }
 
   header {
@@ -228,6 +346,7 @@
 
   .todo-item {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 12px;
     padding: 14px 28px;
@@ -392,6 +511,12 @@
     opacity: 0.5;
   }
 
+  @media (max-width: 860px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .completed-section { border-left: none; border-top: 1px solid var(--border); }
+    #completedList { max-height: none; }
+  }
+
   @media (max-width: 600px) {
     body { padding: 16px 8px; }
     .container { border-radius: 12px; }
@@ -403,6 +528,8 @@
     .todo-item .actions { opacity: 1; }
     footer { padding: 14px 18px; }
     .todo-item .date { display: none; }
+    .completed-header { padding: 14px 18px 10px; }
+    #completedList .todo-item { padding: 10px 18px; }
   }
 </style>
 </head>
@@ -413,31 +540,39 @@
     <button id="themeToggle" title="테마 변경">🌙</button>
   </header>
 
-  <div class="input-area">
-    <input type="text" id="todoInput" placeholder="할 일을 입력하고 Enter 키를 누르세요" maxlength="200" autofocus>
-    <input type="text" id="categoryInput" list="categoryList" placeholder="대분류" maxlength="30" title="대분류 (선택)">
-    <datalist id="categoryList"></datalist>
-    <select id="priority" title="우선순위">
-      <option value="normal">보통</option>
-      <option value="high">높음</option>
-      <option value="low">낮음</option>
-    </select>
-    <button id="addBtn">추가</button>
+  <div class="main-grid">
+    <section class="active-section">
+      <div class="input-area">
+        <input type="text" id="todoInput" placeholder="할 일을 입력하고 Enter 키를 누르세요" maxlength="200" autofocus>
+        <input type="text" id="categoryInput" list="categoryList" placeholder="대분류" maxlength="30" title="대분류 (선택)">
+        <datalist id="categoryList"></datalist>
+        <select id="priority" title="우선순위">
+          <option value="normal">보통</option>
+          <option value="high">높음</option>
+          <option value="low">낮음</option>
+        </select>
+        <button id="addBtn">추가</button>
+      </div>
+
+      <div class="filters">
+        <select id="categoryFilter" title="분류로 필터"><option value="">분류: 전체</option></select>
+      </div>
+
+      <ul id="todoList"></ul>
+
+      <footer>
+        <span id="counter">0개 남음</span>
+      </footer>
+    </section>
+
+    <aside class="completed-section">
+      <div class="completed-header">
+        <h2>✅ 완료 <span id="doneCount" class="done-count">0</span></h2>
+        <button id="clearCompleted" title="완료된 항목 모두 삭제">전체 삭제</button>
+      </div>
+      <ul id="completedList"></ul>
+    </aside>
   </div>
-
-  <div class="filters">
-    <button class="filter active" data-filter="all">전체 <span class="count" data-count="all">0</span></button>
-    <button class="filter" data-filter="active">진행 중 <span class="count" data-count="active">0</span></button>
-    <button class="filter" data-filter="completed">완료 <span class="count" data-count="completed">0</span></button>
-    <select id="categoryFilter" title="대분류 필터"><option value="">전체 분류</option></select>
-  </div>
-
-  <ul id="todoList"></ul>
-
-  <footer>
-    <span id="counter">0개 남음</span>
-    <button id="clearCompleted">완료된 항목 삭제</button>
-  </footer>
 </div>
 
 <script>
@@ -452,13 +587,16 @@
   const $priority = document.getElementById('priority');
   const $addBtn = document.getElementById('addBtn');
   const $list = document.getElementById('todoList');
+  const $completedList = document.getElementById('completedList');
+  const $doneCount = document.getElementById('doneCount');
   const $counter = document.getElementById('counter');
   const $clear = document.getElementById('clearCompleted');
   const $themeToggle = document.getElementById('themeToggle');
+  const $grid = document.querySelector('.main-grid');
 
   let todos = [];
-  let filter = 'all';
   let categoryFilter = '';
+  const expandedMemos = new Set();
 
   try {
     todos = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -497,56 +635,64 @@
       : 'background:hsl(' + h + ',70%,92%);color:hsl(' + h + ',45%,30%);';
   }
 
+  function renderItem(t, isDark) {
+    const cat = (t.category || '').trim();
+    const chip = cat ? '<span class="category" style="' + categoryStyle(cat, isDark) + '">' + escapeHtml(cat) + '</span>' : '';
+    const hasMemo = (t.memo || '').trim().length > 0;
+    const memoOpen = expandedMemos.has(t.id);
+    const memoArea = memoOpen
+      ? '<div class="memo-area"><textarea class="memo-textarea" placeholder="세부 메모 (입력 시 자동 저장)" maxlength="2000">' + escapeHtml(t.memo || '') + '</textarea></div>'
+      : '';
+    return '<li class="todo-item ' + (t.done ? 'done ' : '') + 'priority-' + t.priority + '" data-id="' + t.id + '" draggable="true">' +
+        '<span class="drag-handle" title="드래그하여 순서 변경" aria-hidden="true">⠿</span>' +
+        '<input type="checkbox"' + (t.done ? ' checked' : '') + '>' +
+        chip +
+        '<span class="text">' + escapeHtml(t.text) + '</span>' +
+        '<span class="date">' + formatDate(t.createdAt) + '</span>' +
+        '<div class="actions">' +
+          '<button class="memo' + (hasMemo ? ' has-content' : '') + '" title="메모">메모</button>' +
+          '<button class="edit" title="수정">수정</button>' +
+          '<button class="delete" title="삭제">삭제</button>' +
+        '</div>' +
+        memoArea +
+      '</li>';
+  }
+
   function render() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
     const categories = [...new Set(todos.map(t => (t.category || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b, 'ko'));
     $categoryList.innerHTML = categories.map(c => '<option value="' + escapeHtml(c) + '">').join('');
     if (categoryFilter && !categories.includes(categoryFilter)) categoryFilter = '';
-    $categoryFilter.innerHTML = '<option value="">전체 분류</option>' +
+    $categoryFilter.innerHTML = '<option value="">분류: 전체</option>' +
       categories.map(c => '<option value="' + escapeHtml(c) + '"' + (c === categoryFilter ? ' selected' : '') + '>' + escapeHtml(c) + '</option>').join('');
 
-    const visible = todos.filter(t => {
-      if (filter === 'active' && t.done) return false;
-      if (filter === 'completed' && !t.done) return false;
-      if (categoryFilter && (t.category || '') !== categoryFilter) return false;
-      return true;
-    });
+    const matchesCategory = t => !categoryFilter || (t.category || '') === categoryFilter;
+    const activeTodos = todos.filter(t => !t.done && matchesCategory(t));
+    const completedTodos = todos.filter(t => t.done && matchesCategory(t));
 
-    if (visible.length === 0) {
-      const messages = {
-        all: { emoji: '✨', text: '아직 할 일이 없어요. 위에서 추가해 보세요!' },
-        active: { emoji: '🎉', text: '진행 중인 할 일이 없어요!' },
-        completed: { emoji: '📭', text: '완료한 할 일이 없어요.' }
-      };
+    if (activeTodos.length === 0) {
       const m = categoryFilter
-        ? { emoji: '🔍', text: '"' + categoryFilter + '" 분류에 해당하는 할 일이 없어요.' }
-        : messages[filter];
+        ? { emoji: '🔍', text: '"' + categoryFilter + '" 분류에 진행 중인 할 일이 없어요.' }
+        : { emoji: '✨', text: '진행 중인 할 일이 없어요. 위에서 추가해 보세요!' };
       $list.innerHTML = '<li class="empty-state"><span class="emoji">' + m.emoji + '</span>' + escapeHtml(m.text) + '</li>';
     } else {
-      $list.innerHTML = visible.map(t => {
-        const cat = (t.category || '').trim();
-        const chip = cat ? '<span class="category" style="' + categoryStyle(cat, isDark) + '">' + escapeHtml(cat) + '</span>' : '';
-        return '<li class="todo-item ' + (t.done ? 'done ' : '') + 'priority-' + t.priority + '" data-id="' + t.id + '" draggable="true">' +
-            '<span class="drag-handle" title="드래그하여 순서 변경" aria-hidden="true">⠿</span>' +
-            '<input type="checkbox"' + (t.done ? ' checked' : '') + '>' +
-            chip +
-            '<span class="text">' + escapeHtml(t.text) + '</span>' +
-            '<span class="date">' + formatDate(t.createdAt) + '</span>' +
-            '<div class="actions">' +
-              '<button class="edit" title="수정">수정</button>' +
-              '<button class="delete" title="삭제">삭제</button>' +
-            '</div>' +
-          '</li>';
-      }).join('');
+      $list.innerHTML = activeTodos.map(t => renderItem(t, isDark)).join('');
     }
 
-    const activeCount = todos.filter(t => !t.done).length;
-    const doneCount = todos.length - activeCount;
-    $counter.textContent = activeCount + '개 남음';
-    document.querySelector('[data-count="all"]').textContent = todos.length;
-    document.querySelector('[data-count="active"]').textContent = activeCount;
-    document.querySelector('[data-count="completed"]').textContent = doneCount;
+    if (completedTodos.length === 0) {
+      const m = categoryFilter
+        ? { emoji: '📭', text: '이 분류에 완료된 항목이 없어요.' }
+        : { emoji: '📭', text: '완료한 항목이 없어요.' };
+      $completedList.innerHTML = '<li class="empty-state"><span class="emoji">' + m.emoji + '</span>' + escapeHtml(m.text) + '</li>';
+    } else {
+      $completedList.innerHTML = completedTodos.map(t => renderItem(t, isDark)).join('');
+    }
+
+    const totalActive = todos.filter(t => !t.done).length;
+    const totalDone = todos.length - totalActive;
+    $counter.textContent = totalActive + '개 남음';
+    $doneCount.textContent = totalDone;
   }
 
   function addTodo() {
@@ -574,17 +720,23 @@
   });
 
   let draggedId = null;
+  let draggedFromList = null; // 'active' | 'completed'
+
+  function listOf(li) {
+    return li.closest('ul')?.id === 'completedList' ? 'completed' : 'active';
+  }
 
   function clearDragIndicators() {
-    $list.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
+    $grid.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
       el.classList.remove('drag-over-top', 'drag-over-bottom');
     });
   }
 
-  $list.addEventListener('dragstart', e => {
+  $grid.addEventListener('dragstart', e => {
     const li = e.target.closest('.todo-item');
     if (!li) return;
     draggedId = li.dataset.id;
+    draggedFromList = listOf(li);
     li.classList.add('dragging');
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = 'move';
@@ -592,16 +744,18 @@
     }
   });
 
-  $list.addEventListener('dragend', () => {
-    $list.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+  $grid.addEventListener('dragend', () => {
+    $grid.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
     clearDragIndicators();
     draggedId = null;
+    draggedFromList = null;
   });
 
-  $list.addEventListener('dragover', e => {
+  $grid.addEventListener('dragover', e => {
     if (!draggedId) return;
     const li = e.target.closest('.todo-item');
     if (!li || li.dataset.id === draggedId) return;
+    if (listOf(li) !== draggedFromList) return;
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
     const rect = li.getBoundingClientRect();
@@ -610,14 +764,18 @@
     li.classList.add(above ? 'drag-over-top' : 'drag-over-bottom');
   });
 
-  $list.addEventListener('dragleave', e => {
-    if (!e.relatedTarget || !$list.contains(e.relatedTarget)) clearDragIndicators();
+  $grid.addEventListener('dragleave', e => {
+    if (!e.relatedTarget || !$grid.contains(e.relatedTarget)) clearDragIndicators();
   });
 
-  $list.addEventListener('drop', e => {
+  $grid.addEventListener('drop', e => {
     e.preventDefault();
     const targetLi = e.target.closest('.todo-item');
     if (!targetLi || !draggedId || targetLi.dataset.id === draggedId) {
+      clearDragIndicators();
+      return;
+    }
+    if (listOf(targetLi) !== draggedFromList) {
       clearDragIndicators();
       return;
     }
@@ -647,7 +805,7 @@
     }
   });
 
-  $list.addEventListener('click', e => {
+  $grid.addEventListener('click', e => {
     const li = e.target.closest('.todo-item');
     if (!li) return;
     const id = li.dataset.id;
@@ -658,14 +816,40 @@
       todo.done = e.target.checked;
       save();
       render();
+    } else if (e.target.matches('.memo')) {
+      if (expandedMemos.has(id)) expandedMemos.delete(id);
+      else expandedMemos.add(id);
+      render();
+      // 메모 열었으면 textarea로 포커스 이동
+      if (expandedMemos.has(id)) {
+        const ta = document.querySelector('.todo-item[data-id="' + CSS.escape(id) + '"] .memo-textarea');
+        if (ta) { ta.focus(); ta.selectionStart = ta.selectionEnd = ta.value.length; }
+      }
     } else if (e.target.matches('.delete')) {
       if (confirm('이 할 일을 삭제하시겠습니까?\n\n' + todo.text)) {
         todos = todos.filter(t => t.id !== id);
+        expandedMemos.delete(id);
         save();
         render();
       }
     } else if (e.target.matches('.edit') || e.target.matches('.text') || e.target.matches('.category')) {
       startEdit(li, todo);
+    }
+  });
+
+  $grid.addEventListener('input', e => {
+    if (!e.target.matches('.memo-textarea')) return;
+    const li = e.target.closest('.todo-item');
+    if (!li) return;
+    const id = li.dataset.id;
+    const todo = todos.find(t => t.id === id);
+    if (!todo) return;
+    todo.memo = e.target.value;
+    save();
+    const memoBtn = li.querySelector('.memo');
+    if (memoBtn) {
+      if (todo.memo.trim()) memoBtn.classList.add('has-content');
+      else memoBtn.classList.remove('has-content');
     }
   });
 
@@ -731,15 +915,6 @@
       });
     });
   }
-
-  document.querySelectorAll('.filter').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      filter = btn.dataset.filter;
-      render();
-    });
-  });
 
   $clear.addEventListener('click', () => {
     const doneCount = todos.filter(t => t.done).length;
