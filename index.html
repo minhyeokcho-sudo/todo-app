@@ -543,14 +543,14 @@
   <div class="main-grid">
     <section class="active-section">
       <div class="input-area">
-        <input type="text" id="todoInput" placeholder="할 일을 입력하고 Enter 키를 누르세요" maxlength="200" autofocus>
         <input type="text" id="categoryInput" list="categoryList" placeholder="대분류" maxlength="30" title="대분류 (선택)">
         <datalist id="categoryList"></datalist>
-        <select id="priority" title="우선순위">
+        <select id="priority" title="중요도">
           <option value="normal">보통</option>
           <option value="high">높음</option>
           <option value="low">낮음</option>
         </select>
+        <input type="text" id="todoInput" placeholder="할 일을 입력하고 Enter 키를 누르세요" maxlength="200" autofocus>
         <button id="addBtn">추가</button>
       </div>
 
