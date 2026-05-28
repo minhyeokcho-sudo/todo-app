@@ -150,7 +150,7 @@
 
   .todo-item .memo-area textarea {
     width: 100%;
-    min-height: 70px;
+    min-height: 60px;
     padding: 10px 12px;
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -159,9 +159,12 @@
     font-family: inherit;
     font-size: 13px;
     line-height: 1.5;
-    resize: vertical;
+    resize: none;
+    overflow: hidden;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
+    display: block;
+    box-sizing: border-box;
   }
 
   .todo-item .memo-area textarea:focus {
@@ -635,6 +638,11 @@
       : 'background:hsl(' + h + ',70%,92%);color:hsl(' + h + ',45%,30%);';
   }
 
+  function autoSizeTextarea(ta) {
+    ta.style.height = 'auto';
+    ta.style.height = ta.scrollHeight + 'px';
+  }
+
   function renderItem(t, isDark) {
     const cat = (t.category || '').trim();
     const chip = cat ? '<span class="category" style="' + categoryStyle(cat, isDark) + '">' + escapeHtml(cat) + '</span>' : '';
@@ -693,6 +701,8 @@
     const totalDone = todos.length - totalActive;
     $counter.textContent = totalActive + '개 남음';
     $doneCount.textContent = totalDone;
+
+    $grid.querySelectorAll('.memo-textarea').forEach(autoSizeTextarea);
   }
 
   function addTodo() {
@@ -851,6 +861,7 @@
       if (todo.memo.trim()) memoBtn.classList.add('has-content');
       else memoBtn.classList.remove('has-content');
     }
+    autoSizeTextarea(e.target);
   });
 
   function startEdit(li, todo) {
