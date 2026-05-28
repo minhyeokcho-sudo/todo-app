@@ -599,6 +599,19 @@
     flex-shrink: 0;
   }
 
+  .todo-item .priority-edit {
+    padding: 6px 8px;
+    border: 1px solid var(--primary);
+    border-radius: 6px;
+    font-size: 13px;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    font-family: inherit;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
   .todo-item .drag-handle {
     color: var(--text-secondary);
     opacity: 0.35;
@@ -728,6 +741,7 @@
     .todo-item .drag-handle { display: none; }
     .todo-item .text-edit { font-size: 13px; }
     .todo-item .category-edit { font-size: 11px; }
+    .todo-item .priority-edit { font-size: 11px; }
     footer { padding: 14px 18px; font-size: 11px; }
     .todo-item .date { display: none; }
     .completed-header { padding: 14px 18px 10px; }
@@ -1177,12 +1191,18 @@
     catInput.placeholder = '대분류';
     catInput.setAttribute('list', 'categoryList');
 
+    const prioSelect = document.createElement('select');
+    prioSelect.className = 'priority-edit';
+    prioSelect.innerHTML = '<option value="normal">보통</option><option value="high">높음</option><option value="low">낮음</option>';
+    prioSelect.value = todo.priority || 'normal';
+
     textSpan.replaceWith(textInput);
     if (catSpan) {
       catSpan.replaceWith(catInput);
     } else {
-      textInput.after(catInput);
+      textInput.before(catInput);
     }
+    catInput.after(prioSelect);
 
     textInput.focus();
     textInput.select();
@@ -1196,6 +1216,7 @@
       done = true;
       todo.text = newText;
       todo.category = catInput.value.trim();
+      todo.priority = prioSelect.value;
       todo.updatedAt = Date.now();
       save();
       render();
@@ -1208,11 +1229,11 @@
     function maybeCommit() {
       setTimeout(() => {
         const a = document.activeElement;
-        if (a !== textInput && a !== catInput) commit();
+        if (a !== textInput && a !== catInput && a !== prioSelect) commit();
       }, 0);
     }
 
-    [textInput, catInput].forEach(inp => {
+    [textInput, catInput, prioSelect].forEach(inp => {
       inp.addEventListener('blur', maybeCommit);
       inp.addEventListener('keydown', e => {
         if (e.key === 'Enter') { e.preventDefault(); commit(); }
