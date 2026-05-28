@@ -1518,6 +1518,30 @@
     updateSyncTooltip();
   });
 
+  // ===== Auto-sync (PC only, every 3 minutes) =====
+  const AUTO_SYNC_INTERVAL_MS = 3 * 60 * 1000;
+  const INITIAL_SYNC_DELAY_MS = 5 * 1000;
+  const isPCDevice = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+  async function autoSyncTick() {
+    // 자동 동기화 스킵 조건
+    if (!localStorage.getItem(TOKEN_KEY)) return;          // 토큰 없음
+    if ($syncBtn.classList.contains('syncing')) return;    // 진행 중 (수동/자동 중복 방지)
+    if (document.hidden) return;                            // 탭이 백그라운드
+    await doSync();
+  }
+
+  if (isPCDevice) {
+    // 페이지 로드 5초 후 초기 동기화 (렌더 마치고 잔여 작업 끝난 뒤)
+    setTimeout(autoSyncTick, INITIAL_SYNC_DELAY_MS);
+    // 이후 3분마다
+    setInterval(autoSyncTick, AUTO_SYNC_INTERVAL_MS);
+    // 탭이 백그라운드 → 포그라운드 복귀 시 즉시 한 번
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) autoSyncTick();
+    });
+  }
+
   render();
 })();
 </script>
