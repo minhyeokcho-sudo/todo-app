@@ -122,7 +122,10 @@
     overflow-y: auto;
     min-height: 200px;
     max-height: 60vh;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
+  #completedList::-webkit-scrollbar { display: none; }
 
   #completedList .todo-item {
     padding: 10px 22px;
@@ -519,7 +522,10 @@
     min-height: 120px;
     max-height: 60vh;
     overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
+  #todoList::-webkit-scrollbar { display: none; }
 
   .todo-item {
     display: flex;
@@ -1519,7 +1525,7 @@
   });
 
   // ===== Auto-sync (PC only, every 3 minutes) =====
-  const AUTO_SYNC_INTERVAL_MS = 3 * 60 * 1000;
+  const AUTO_SYNC_INTERVAL_MS = 1 * 60 * 1000;
   const INITIAL_SYNC_DELAY_MS = 5 * 1000;
   const isPCDevice = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
