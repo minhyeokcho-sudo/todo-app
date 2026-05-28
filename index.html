@@ -129,10 +129,22 @@
     gap: 8px;
     font-size: 13px;
   }
-  #completedList .todo-item .text { font-size: 13px; }
+  #completedList .todo-item .text {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex: 1;
+  }
+  #completedList .todo-item .category {
+    max-width: 110px;
+  }
   #completedList .todo-item .date { display: none; }
   #completedList .todo-item .drag-handle { display: none; }
   #completedList .todo-item button { font-size: 11px; padding: 4px 8px; }
+  #completedList .todo-item .actions { display: none; }
+  #completedList .todo-item:hover .actions { display: flex; }
   #completedList .empty-state { padding: 40px 16px; font-size: 13px; }
   #completedList .empty-state .emoji { font-size: 26px; margin-bottom: 8px; }
 
@@ -436,6 +448,9 @@
     flex-shrink: 0;
     font-weight: 600;
     letter-spacing: -0.2px;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .todo-item.done .category { opacity: 0.5; }
@@ -863,7 +878,7 @@
 
   function renderItem(t, isDark) {
     const cat = (t.category || '').trim();
-    const chip = cat ? '<span class="category" style="' + categoryStyle(cat, isDark) + '">' + escapeHtml(cat) + '</span>' : '';
+    const chip = cat ? '<span class="category" style="' + categoryStyle(cat, isDark) + '" title="' + escapeHtml(cat) + '">' + escapeHtml(cat) + '</span>' : '';
     const hasMemo = (t.memo || '').trim().length > 0;
     const memoOpen = expandedMemos.has(t.id);
     const memoArea = memoOpen
@@ -873,7 +888,7 @@
         '<span class="drag-handle" title="드래그하여 순서 변경" aria-hidden="true">⠿</span>' +
         '<input type="checkbox"' + (t.done ? ' checked' : '') + '>' +
         chip +
-        '<span class="text">' + escapeHtml(t.text) + '</span>' +
+        '<span class="text" title="' + escapeHtml(t.text) + '">' + escapeHtml(t.text) + '</span>' +
         '<span class="date">' + formatDate(t.createdAt) + '</span>' +
         '<div class="actions">' +
           '<button class="memo' + (hasMemo ? ' has-content' : '') + '" title="메모">메모</button>' +
