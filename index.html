@@ -887,6 +887,7 @@
 
   function saveTombstones() {
     try { localStorage.setItem(TOMBSTONES_KEY, JSON.stringify(tombstones)); } catch (e) {}
+    schedulePendingSync();
   }
 
   function save() {
@@ -895,6 +896,7 @@
     } catch (e) {
       console.warn('저장 실패:', e);
     }
+    schedulePendingSync();
   }
 
   function formatDate(ts) {
@@ -1417,6 +1419,9 @@
     if (!token) { showSyncSetup(); return; }
     if ($syncBtn.classList.contains('syncing')) return; // 중복 실행 방지
 
+    // 변경 후 디바운스 예약돼 있던 sync는 지금 흡수
+    if (pendingSyncTimer) { clearTimeout(pendingSyncTimer); pendingSyncTimer = null; }
+
     setSyncStatus('syncing', '동기화 중...');
     try {
       let gistId = localStorage.getItem(GIST_ID_KEY);
@@ -1524,10 +1529,26 @@
     updateSyncTooltip();
   });
 
-  // ===== Auto-sync (PC only, every 3 minutes) =====
-  const AUTO_SYNC_INTERVAL_MS = 1 * 60 * 1000;
-  const INITIAL_SYNC_DELAY_MS = 5 * 1000;
+  // ===== Auto-sync (PC only) =====
+  const AUTO_SYNC_INTERVAL_MS = 1 * 60 * 1000;          // 안전망: 1분 주기
+  const INITIAL_SYNC_DELAY_MS = 5 * 1000;                // 페이지 로드 후 첫 sync
+  const PENDING_SYNC_DELAY_MS = 3 * 1000;                // 변경 발생 시 디바운스
   const isPCDevice = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  var pendingSyncTimer = null; // doSync에서 참조하기 위해 IIFE 스코프
+
+  // 변경(save/saveTombstones) 발생 시 디바운스로 자동 동기화를 예약.
+  // 빠른 연속 변경(예: 메모 타이핑)은 마지막 입력 이후 PENDING_SYNC_DELAY_MS만큼
+  // 잠잠해질 때까지 기다렸다가 한 번에 sync.
+  function schedulePendingSync() {
+    if (!isPCDevice) return;
+    if (!localStorage.getItem(TOKEN_KEY)) return;
+    if ($syncBtn.classList.contains('syncing')) return; // 동기화 중엔 스킵 (self-loop 방지)
+    if (pendingSyncTimer) clearTimeout(pendingSyncTimer);
+    pendingSyncTimer = setTimeout(() => {
+      pendingSyncTimer = null;
+      autoSyncTick();
+    }, PENDING_SYNC_DELAY_MS);
+  }
 
   async function autoSyncTick() {
     // 자동 동기화 스킵 조건
