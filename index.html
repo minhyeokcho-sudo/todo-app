@@ -910,7 +910,8 @@
 
     const matchesCategory = t => !categoryFilter || (t.category || '') === categoryFilter;
     const activeTodos = todos.filter(t => !t.done && matchesCategory(t));
-    const completedTodos = todos.filter(t => t.done && matchesCategory(t));
+    const completedTodos = todos.filter(t => t.done && matchesCategory(t))
+      .sort((a, b) => (b.completedAt || b.updatedAt || b.createdAt || 0) - (a.completedAt || a.updatedAt || a.createdAt || 0));
 
     if (activeTodos.length === 0) {
       const m = categoryFilter
@@ -1059,7 +1060,9 @@
 
     if (e.target.matches('input[type=checkbox]')) {
       todo.done = e.target.checked;
-      todo.updatedAt = Date.now();
+      const now = Date.now();
+      todo.updatedAt = now;
+      if (todo.done) todo.completedAt = now;
       save();
       render();
     } else if (e.target.matches('.memo')) {
