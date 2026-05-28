@@ -198,6 +198,163 @@
 
   #themeToggle:hover { background: var(--hover); }
 
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .sync-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+    user-select: none;
+  }
+
+  .sync-btn:hover { color: var(--primary); border-color: var(--primary); }
+  .sync-btn .sync-icon { font-size: 14px; display: inline-block; }
+  .sync-btn.syncing { color: var(--primary); border-color: var(--primary); }
+  .sync-btn.syncing .sync-icon { animation: sync-spin 0.9s linear infinite; }
+  .sync-btn.success { color: var(--success); border-color: var(--success); }
+  .sync-btn.error { color: var(--danger); border-color: var(--danger); }
+
+  @keyframes sync-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 16px;
+  }
+
+  [data-theme="dark"] .modal-overlay { background: rgba(0,0,0,0.7); }
+
+  .modal {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 24px 28px 22px;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    color: var(--text);
+  }
+
+  .modal h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    letter-spacing: -0.3px;
+  }
+
+  .modal p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 14px;
+    line-height: 1.55;
+  }
+
+  .modal-steps {
+    padding-left: 20px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .modal-steps li { margin-bottom: 8px; }
+  .modal-steps a { color: var(--primary); text-decoration: none; font-weight: 600; }
+  .modal-steps a:hover { text-decoration: underline; }
+  .modal-steps code, .modal-note code {
+    background: var(--bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .modal-steps .muted { color: var(--text-secondary); font-size: 12px; }
+
+  #syncTokenInput {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+    outline: none;
+    margin: 12px 0 6px;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  #syncTokenInput:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.15);
+  }
+
+  .modal-error {
+    color: var(--danger) !important;
+    font-size: 12px !important;
+    margin: 4px 0 8px !important;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    align-items: center;
+  }
+  .modal-actions .spacer { flex: 1; }
+  .modal-actions button {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .modal-actions button:hover { background: var(--hover); }
+  .modal-actions button.primary {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+  .modal-actions button.primary:hover { background: var(--primary-hover); }
+  #syncDisconnect { color: var(--danger); border-color: var(--border); }
+  #syncDisconnect:hover { background: var(--danger); color: white; border-color: var(--danger); }
+
+  .modal-note {
+    font-size: 11px !important;
+    color: var(--text-secondary) !important;
+    margin-top: 14px !important;
+    margin-bottom: 0 !important;
+    line-height: 1.55;
+  }
+
+  :root { --success: #34c759; }
+  [data-theme="dark"] { --success: #30d158; }
+
   .input-area {
     padding: 20px 28px;
     display: flex;
@@ -540,7 +697,12 @@
 <div class="container">
   <header>
     <h1>📝 할 일 목록</h1>
-    <button id="themeToggle" title="테마 변경">🌙</button>
+    <div class="header-actions">
+      <button id="syncBtn" class="sync-btn" title="GitHub Gist 동기화 (우클릭: 설정)">
+        <span class="sync-icon">↻</span><span class="sync-label">동기화</span>
+      </button>
+      <button id="themeToggle" title="테마 변경">🌙</button>
+    </div>
   </header>
 
   <div class="main-grid">
@@ -578,10 +740,37 @@
   </div>
 </div>
 
+<div id="syncSetup" class="modal-overlay" hidden>
+  <div class="modal">
+    <h3>GitHub Gist 동기화 설정</h3>
+    <p>본인의 GitHub 계정에 비공개 Gist를 만들어 여러 기기에서 같은 할 일 목록을 사용할 수 있게 합니다. 한 번만 설정하면 됩니다.</p>
+    <ol class="modal-steps">
+      <li><a href="https://github.com/settings/tokens/new?scopes=gist&description=todo-app-sync" target="_blank" rel="noopener">→ GitHub 토큰 발급 페이지 열기</a><br><span class="muted">scope는 <code>gist</code>만 체크, 만료 기간은 본인 선호대로</span></li>
+      <li>발급된 토큰(<code>ghp_</code>로 시작)을 복사</li>
+      <li>아래에 붙여넣고 <strong>저장하고 동기화</strong> 클릭</li>
+    </ol>
+    <input type="password" id="syncTokenInput" placeholder="ghp_..." autocomplete="off" spellcheck="false">
+    <p id="syncError" class="modal-error" hidden></p>
+    <div class="modal-actions">
+      <button id="syncDisconnect" type="button" hidden>연결 해제</button>
+      <span class="spacer"></span>
+      <button id="syncCancel" type="button">취소</button>
+      <button id="syncSave" type="button" class="primary">저장하고 동기화</button>
+    </div>
+    <p class="modal-note">토큰은 이 브라우저의 localStorage에만 저장됩니다. gist 권한 외에는 부여하지 않으니 다른 리포·이슈에는 접근할 수 없습니다. 변경하려면 동기화 버튼을 <strong>우클릭</strong>하세요.</p>
+  </div>
+</div>
+
 <script>
 (function() {
   const STORAGE_KEY = 'todos-v1';
   const THEME_KEY = 'todos-theme';
+  const TOMBSTONES_KEY = 'todos-tombstones';
+  const TOKEN_KEY = 'todos-sync-token';
+  const GIST_ID_KEY = 'todos-sync-gist-id';
+  const LAST_SYNC_KEY = 'todos-last-sync';
+  const GIST_FILENAME = 'todos.json';
+  const GIST_DESCRIPTION = 'todo-app sync (minhyeokcho-sudo/todo-app)';
 
   const $input = document.getElementById('todoInput');
   const $categoryInput = document.getElementById('categoryInput');
@@ -596,8 +785,18 @@
   const $clear = document.getElementById('clearCompleted');
   const $themeToggle = document.getElementById('themeToggle');
   const $grid = document.querySelector('.main-grid');
+  const $syncBtn = document.getElementById('syncBtn');
+  const $syncSetup = document.getElementById('syncSetup');
+  const $syncTokenInput = document.getElementById('syncTokenInput');
+  const $syncSave = document.getElementById('syncSave');
+  const $syncCancel = document.getElementById('syncCancel');
+  const $syncDisconnect = document.getElementById('syncDisconnect');
+  const $syncError = document.getElementById('syncError');
+  const $syncLabel = $syncBtn.querySelector('.sync-label');
+  const $syncIcon = $syncBtn.querySelector('.sync-icon');
 
   let todos = [];
+  let tombstones = [];
   let categoryFilter = '';
   const expandedMemos = new Set();
 
@@ -605,6 +804,23 @@
     todos = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
   } catch (e) {
     todos = [];
+  }
+  try {
+    tombstones = JSON.parse(localStorage.getItem(TOMBSTONES_KEY)) || [];
+  } catch (e) {
+    tombstones = [];
+  }
+  // Migration: 기존 항목에 updatedAt이 없으면 createdAt으로 보강
+  let migrated = false;
+  todos.forEach(t => {
+    if (!t.updatedAt) { t.updatedAt = t.createdAt || Date.now(); migrated = true; }
+  });
+  if (migrated) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(todos)); } catch (e) {}
+  }
+
+  function saveTombstones() {
+    try { localStorage.setItem(TOMBSTONES_KEY, JSON.stringify(tombstones)); } catch (e) {}
   }
 
   function save() {
@@ -708,13 +924,15 @@
   function addTodo() {
     const text = $input.value.trim();
     if (!text) return;
+    const now = Date.now();
     todos.unshift({
-      id: Date.now() + '-' + Math.random().toString(36).slice(2,6),
+      id: now + '-' + Math.random().toString(36).slice(2,6),
       text: text,
       category: $categoryInput.value.trim(),
       done: false,
       priority: $priority.value,
-      createdAt: Date.now()
+      createdAt: now,
+      updatedAt: now
     });
     $input.value = '';
     $priority.value = 'normal';
@@ -824,6 +1042,7 @@
 
     if (e.target.matches('input[type=checkbox]')) {
       todo.done = e.target.checked;
+      todo.updatedAt = Date.now();
       save();
       render();
     } else if (e.target.matches('.memo')) {
@@ -839,7 +1058,9 @@
       if (confirm('이 할 일을 삭제하시겠습니까?\n\n' + todo.text)) {
         todos = todos.filter(t => t.id !== id);
         expandedMemos.delete(id);
+        tombstones.push({ id: id, deletedAt: Date.now() });
         save();
+        saveTombstones();
         render();
       }
     } else if (e.target.matches('.edit') || e.target.matches('.text') || e.target.matches('.category')) {
@@ -855,6 +1076,7 @@
     const todo = todos.find(t => t.id === id);
     if (!todo) return;
     todo.memo = e.target.value;
+    todo.updatedAt = Date.now();
     save();
     const memoBtn = li.querySelector('.memo');
     if (memoBtn) {
@@ -903,6 +1125,7 @@
       done = true;
       todo.text = newText;
       todo.category = catInput.value.trim();
+      todo.updatedAt = Date.now();
       save();
       render();
     }
@@ -934,8 +1157,14 @@
       return;
     }
     if (confirm('완료된 ' + doneCount + '개 항목을 모두 삭제하시겠습니까?')) {
+      const now = Date.now();
+      todos.filter(t => t.done).forEach(t => {
+        tombstones.push({ id: t.id, deletedAt: now });
+        expandedMemos.delete(t.id);
+      });
       todos = todos.filter(t => !t.done);
       save();
+      saveTombstones();
       render();
     }
   });
@@ -956,6 +1185,242 @@
     $themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
     $themeToggle.title = theme === 'dark' ? '라이트 모드' : '다크 모드';
   }
+
+  // ===== Sync (GitHub Gist) =====
+
+  function setSyncStatus(state, label, errMsg) {
+    $syncBtn.classList.remove('syncing', 'success', 'error');
+    if (state) $syncBtn.classList.add(state);
+    const iconMap = { syncing: '↻', success: '✓', error: '⚠' };
+    $syncIcon.textContent = iconMap[state] || '↻';
+    $syncLabel.textContent = label || '동기화';
+    if (errMsg) $syncBtn.title = errMsg;
+    else updateSyncTooltip();
+  }
+
+  function updateSyncTooltip() {
+    const last = parseInt(localStorage.getItem(LAST_SYNC_KEY) || '0', 10);
+    if (!last) {
+      $syncBtn.title = 'GitHub Gist 동기화 (우클릭: 설정)';
+      return;
+    }
+    const ago = Date.now() - last;
+    let agoStr;
+    if (ago < 60000) agoStr = '방금';
+    else if (ago < 3600000) agoStr = Math.floor(ago / 60000) + '분 전';
+    else if (ago < 86400000) agoStr = Math.floor(ago / 3600000) + '시간 전';
+    else agoStr = Math.floor(ago / 86400000) + '일 전';
+    $syncBtn.title = '마지막 동기화: ' + agoStr + ' (우클릭: 설정)';
+  }
+  updateSyncTooltip();
+  setInterval(updateSyncTooltip, 60000);
+
+  async function gistRequest(method, path, token, body) {
+    const opts = {
+      method: method,
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28'
+      }
+    };
+    if (body !== undefined) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
+    const res = await fetch('https://api.github.com' + path, opts);
+    if (!res.ok) {
+      let msg = 'HTTP ' + res.status;
+      try { const j = await res.json(); if (j.message) msg = j.message; } catch (_) {}
+      const err = new Error(msg);
+      err.status = res.status;
+      throw err;
+    }
+    return res.json();
+  }
+
+  async function gistFetch(token, gistId) {
+    const data = await gistRequest('GET', '/gists/' + gistId, token);
+    const file = data.files && data.files[GIST_FILENAME];
+    if (!file) return { todos: [], tombstones: [] };
+    try {
+      const parsed = JSON.parse(file.content);
+      return {
+        todos: Array.isArray(parsed.todos) ? parsed.todos : [],
+        tombstones: Array.isArray(parsed.tombstones) ? parsed.tombstones : []
+      };
+    } catch (e) {
+      return { todos: [], tombstones: [] };
+    }
+  }
+
+  async function gistCreate(token, payload) {
+    const data = await gistRequest('POST', '/gists', token, {
+      description: GIST_DESCRIPTION,
+      public: false,
+      files: { [GIST_FILENAME]: { content: JSON.stringify(payload, null, 2) } }
+    });
+    return data.id;
+  }
+
+  async function gistUpdate(token, gistId, payload) {
+    await gistRequest('PATCH', '/gists/' + gistId, token, {
+      files: { [GIST_FILENAME]: { content: JSON.stringify(payload, null, 2) } }
+    });
+  }
+
+  function mergeData(localTodos, localTombs, remoteTodos, remoteTombs) {
+    // Tombstones: id별로 가장 늦은 deletedAt만 남김. 30일 지난 건 정리.
+    const cutoff = Date.now() - 30 * 86400000;
+    const tombMap = new Map();
+    [...localTombs, ...remoteTombs].forEach(t => {
+      if (!t || !t.id || !t.deletedAt) return;
+      if (t.deletedAt < cutoff) return;
+      const ex = tombMap.get(t.id);
+      if (!ex || t.deletedAt > ex.deletedAt) tombMap.set(t.id, t);
+    });
+
+    // Todos: id별로 updatedAt이 더 늦은 쪽 채택
+    const todoMap = new Map();
+    [...remoteTodos, ...localTodos].forEach(t => {
+      if (!t || !t.id) return;
+      const ex = todoMap.get(t.id);
+      if (!ex || (t.updatedAt || 0) > (ex.updatedAt || 0)) todoMap.set(t.id, t);
+    });
+
+    // Tombstone이 더 늦으면 해당 todo는 제외 (삭제 우선)
+    const result = [];
+    todoMap.forEach((t, id) => {
+      const tomb = tombMap.get(id);
+      if (tomb && tomb.deletedAt >= (t.updatedAt || 0)) return;
+      result.push(t);
+    });
+
+    // 결과에 살아 있는 항목은 tombstone에서 제외 (한쪽이 다시 살린 경우)
+    result.forEach(t => {
+      const tomb = tombMap.get(t.id);
+      if (tomb && (t.updatedAt || 0) > tomb.deletedAt) tombMap.delete(t.id);
+    });
+
+    return { todos: result, tombstones: Array.from(tombMap.values()) };
+  }
+
+  function showSyncSetup(errMsg) {
+    const existingToken = localStorage.getItem(TOKEN_KEY) || '';
+    $syncTokenInput.value = existingToken;
+    $syncDisconnect.hidden = !existingToken;
+    if (errMsg) { $syncError.textContent = errMsg; $syncError.hidden = false; }
+    else { $syncError.hidden = true; $syncError.textContent = ''; }
+    $syncSetup.hidden = false;
+    setTimeout(() => $syncTokenInput.focus(), 50);
+  }
+
+  function hideSyncSetup() {
+    $syncSetup.hidden = true;
+    $syncError.hidden = true;
+  }
+
+  async function doSync() {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) { showSyncSetup(); return; }
+    if ($syncBtn.classList.contains('syncing')) return; // 중복 실행 방지
+
+    setSyncStatus('syncing', '동기화 중...');
+    try {
+      let gistId = localStorage.getItem(GIST_ID_KEY);
+      let remote = { todos: [], tombstones: [] };
+
+      if (gistId) {
+        try {
+          remote = await gistFetch(token, gistId);
+        } catch (e) {
+          if (e.status === 404) {
+            // Gist가 삭제됨 — 다시 생성
+            gistId = null;
+            localStorage.removeItem(GIST_ID_KEY);
+          } else {
+            throw e;
+          }
+        }
+      }
+
+      const merged = mergeData(todos, tombstones, remote.todos, remote.tombstones);
+      const payload = {
+        todos: merged.todos,
+        tombstones: merged.tombstones,
+        syncedAt: Date.now(),
+        device: navigator.userAgent.slice(0, 80)
+      };
+
+      if (!gistId) {
+        gistId = await gistCreate(token, payload);
+        localStorage.setItem(GIST_ID_KEY, gistId);
+      } else {
+        await gistUpdate(token, gistId, payload);
+      }
+
+      todos = merged.todos;
+      tombstones = merged.tombstones;
+      save();
+      saveTombstones();
+      localStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
+      render();
+
+      setSyncStatus('success', '동기화 완료');
+      setTimeout(() => setSyncStatus(null, '동기화'), 2500);
+    } catch (e) {
+      console.error('Sync failed:', e);
+      const userMsg = e.status === 401 ? '토큰이 유효하지 않습니다'
+                    : e.status === 403 ? '권한이 부족합니다 (gist scope 확인)'
+                    : '동기화 실패: ' + e.message;
+      setSyncStatus('error', '오류', userMsg);
+      // 401이면 모달도 다시 띄움
+      if (e.status === 401) {
+        setTimeout(() => { setSyncStatus(null, '동기화'); showSyncSetup(userMsg); }, 800);
+      } else {
+        setTimeout(() => setSyncStatus(null, '동기화'), 5000);
+      }
+    }
+  }
+
+  $syncBtn.addEventListener('click', doSync);
+  $syncBtn.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    showSyncSetup();
+  });
+
+  $syncCancel.addEventListener('click', hideSyncSetup);
+  $syncSetup.addEventListener('click', e => { if (e.target === $syncSetup) hideSyncSetup(); });
+  $syncTokenInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); $syncSave.click(); }
+    else if (e.key === 'Escape') { e.preventDefault(); hideSyncSetup(); }
+  });
+
+  $syncSave.addEventListener('click', () => {
+    const v = $syncTokenInput.value.trim();
+    if (!v) {
+      $syncError.textContent = '토큰을 입력해 주세요.';
+      $syncError.hidden = false;
+      return;
+    }
+    if (!/^(ghp_|github_pat_|gho_)/.test(v) && v.length < 20) {
+      $syncError.textContent = '토큰 형식이 올바르지 않습니다 (ghp_ 또는 github_pat_ 로 시작).';
+      $syncError.hidden = false;
+      return;
+    }
+    localStorage.setItem(TOKEN_KEY, v);
+    hideSyncSetup();
+    doSync();
+  });
+
+  $syncDisconnect.addEventListener('click', () => {
+    if (!confirm('동기화 연결을 해제하시겠습니까?\n\n로컬 데이터는 그대로 유지되며, GitHub Gist의 데이터도 그대로 남습니다. (Gist를 삭제하려면 GitHub에서 직접 해주세요)')) return;
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(GIST_ID_KEY);
+    localStorage.removeItem(LAST_SYNC_KEY);
+    hideSyncSetup();
+    updateSyncTooltip();
+  });
 
   render();
 })();
