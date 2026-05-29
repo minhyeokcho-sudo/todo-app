@@ -1104,6 +1104,9 @@
       return;
     }
     todos.splice(dropAbove ? newToIdx : newToIdx + 1, 0, moved);
+    // 순서 변경이 sync에서 살아남도록 moved의 updatedAt 갱신.
+    // mergeData가 localMax/remoteMax를 비교해 더 최근 쪽 순서를 채택.
+    moved.updatedAt = Date.now();
     save();
     render();
   });
@@ -1396,21 +1399,37 @@
       if (!ex || t.deletedAt > ex.deletedAt) tombMap.set(t.id, t);
     });
 
-    // Todos: id별로 updatedAt이 더 늦은 쪽 채택
-    const todoMap = new Map();
-    [...remoteTodos, ...localTodos].forEach(t => {
-      if (!t || !t.id) return;
-      const ex = todoMap.get(t.id);
-      if (!ex || (t.updatedAt || 0) > (ex.updatedAt || 0)) todoMap.set(t.id, t);
-    });
+    // 어느 쪽이 더 최근에 변경됐는지로 "순서의 권위"를 결정.
+    // primary 측 배열 순서를 기준으로 결과 순서를 만들고, secondary에만 있는
+    // 항목은 끝에 이어 붙임. 각 항목의 "내용"은 updatedAt이 더 늦은 쪽 채택.
+    const localMax = localTodos.reduce((m, t) => Math.max(m, t.updatedAt || 0), 0);
+    const remoteMax = remoteTodos.reduce((m, t) => Math.max(m, t.updatedAt || 0), 0);
+    const primary = localMax >= remoteMax ? localTodos : remoteTodos;
+    const secondary = localMax >= remoteMax ? remoteTodos : localTodos;
+    const secondaryMap = new Map();
+    secondary.forEach(t => { if (t && t.id) secondaryMap.set(t.id, t); });
 
-    // Tombstone이 더 늦으면 해당 todo는 제외 (삭제 우선)
     const result = [];
-    todoMap.forEach((t, id) => {
-      const tomb = tombMap.get(id);
-      if (tomb && tomb.deletedAt >= (t.updatedAt || 0)) return;
+    const seen = new Set();
+
+    for (const t of primary) {
+      if (!t || !t.id || seen.has(t.id)) continue;
+      const other = secondaryMap.get(t.id);
+      const winner = (other && (other.updatedAt || 0) > (t.updatedAt || 0)) ? other : t;
+      const tomb = tombMap.get(winner.id);
+      if (tomb && tomb.deletedAt >= (winner.updatedAt || 0)) continue;
+      result.push(winner);
+      seen.add(winner.id);
+    }
+
+    // secondary에만 있는 항목 (한쪽에서 신규 추가)
+    for (const t of secondary) {
+      if (!t || !t.id || seen.has(t.id)) continue;
+      const tomb = tombMap.get(t.id);
+      if (tomb && tomb.deletedAt >= (t.updatedAt || 0)) continue;
       result.push(t);
-    });
+      seen.add(t.id);
+    }
 
     // 결과에 살아 있는 항목은 tombstone에서 제외 (한쪽이 다시 살린 경우)
     result.forEach(t => {
@@ -1577,6 +1596,9 @@
     if (!localStorage.getItem(TOKEN_KEY)) return;          // 토큰 없음
     if ($syncBtn.classList.contains('syncing')) return;    // 진행 중 (수동/자동 중복 방지)
     if (document.hidden) return;                            // 탭이 백그라운드
+    // 사용자가 인라인 편집·메모 타이핑 중이면 미루기 (render로 입력 손실 방지)
+    const ae = document.activeElement;
+    if (ae && ae.matches && ae.matches('.text-edit, .category-edit, .priority-edit, .memo-textarea')) return;
     await doSync();
   }
 
